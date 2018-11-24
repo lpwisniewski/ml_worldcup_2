@@ -1,16 +1,13 @@
-import matplotlib
+import os
+
 import matplotlib.image as mpimg
-import numpy as np
 import matplotlib.pyplot as plt
-import os, sys
+import numpy as np
 import tensorflow as tf
-import tensorflow.contrib as tfcontrib
 from tensorflow.python.keras import layers
 from tensorflow.python.keras import losses
 from tensorflow.python.keras import models
-from tensorflow.python.keras import backend as K
-from tensorflow.python.keras.utils import plot_model
-
+import tensorflow.keras.backend as K
 
 # Helper functions
 
@@ -187,19 +184,42 @@ def bce_dice_loss(y_true, y_pred):
     return loss
 
 
+def f1_score(y_true, y_pred):
+
+    # Count positive samples.
+    c1 = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    c2 = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    c3 = K.sum(K.round(K.clip(y_true, 0, 1)))
+
+    # If there are no true samples, fix the F1 score at 0.
+    if c3 == 0:
+        return 0
+
+    # How many selected items are relevant?
+    precision = c1 / c2
+
+    # How many relevant items are selected?
+    recall = c1 / c3
+
+    # Calculate f1_score
+    f1_score = 2 * (precision * recall) / (precision + recall)
+    return f1_score
+
+
 def main():
-    batch_size = 3
-    epochs = 5
-    imgs, grnd = load_training_images("data/training/", "images/", "groundtruth/", 10)
+    batch_size = 6
+    epochs = 200
+    imgs, grnd = load_training_images("data/training/", "images/", "groundtruth/", 100)
     val_rate = 0.2
     val_split_number = int(len(imgs) * val_rate)
-    imgs_train, imgs_test = imgs[:val_split_number], imgs[val_split_number:]
-    grnd_train, grnd_test = grnd[:val_split_number], grnd[val_split_number:]
+    imgs_test, imgs_train = imgs[:val_split_number], imgs[val_split_number:]
+    grnd_test, grnd_train = grnd[:val_split_number], grnd[val_split_number:]
+    print(len(imgs_train), len(imgs_test))
     show_image_and_groundtruth(imgs[0], grnd[0])
 
     print(imgs[0].shape)
     model = convolutional_model_building(imgs[0].shape)
-    model.compile(optimizer='adam', loss=bce_dice_loss, metrics=[dice_loss])
+    model.compile(optimizer='adam', loss=bce_dice_loss, metrics=[dice_loss, f1_score])
     model.summary()
 
     train_dataset = tf.data.Dataset.from_tensor_slices((imgs_train, grnd_train))
