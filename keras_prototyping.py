@@ -8,24 +8,30 @@ import tensorflow.keras.backend as K
 from tensorflow.python.keras import layers
 from tensorflow.python.keras import losses
 from tensorflow.python.keras import models
-
 import datatools
 import plotting
 
 
-def convolutional_model_building(img_shape):
+def convolutional_model_building(img_shape,
+                                 convolution_size, #TODO Can be parametrized for each layer
+                                 activation_layer,
+                                 filters_nb_list,
+                                 filters_scaling,
+                                 filters_nb_center):
     def conv_block(input_tensor, num_filters):
-        encoder = layers.Conv2D(num_filters, (3, 3), padding='same')(input_tensor)
+        encoder = layers.Conv2D(num_filters, (convolution_size, convolution_size), padding='same')(
+            input_tensor)
         print(encoder)
         encoder = layers.BatchNormalization()(encoder)
         print(encoder)
-        encoder = layers.Activation('relu')(encoder)
+        encoder = layers.Activation(activation_layer)(encoder)
         print(encoder)
-        encoder = layers.Conv2D(num_filters, (3, 3), padding='same')(encoder)
+        encoder = layers.Conv2D(num_filters, (convolution_size, convolution_size), padding='same')(
+            encoder)
         print(encoder)
         encoder = layers.BatchNormalization()(encoder)
         print(encoder)
-        encoder = layers.Activation('relu')(encoder)
+        encoder = layers.Activation(activation_layer)(encoder)
         print(encoder)
         return encoder
 
@@ -44,40 +50,38 @@ def convolutional_model_building(img_shape):
                                          padding='same')(input_tensor)
         decoder = layers.concatenate([concat_tensor, decoder], axis=-1)
         decoder = layers.BatchNormalization()(decoder)
-        decoder = layers.Activation('relu')(decoder)
-        decoder = layers.Conv2D(num_filters, (3, 3), padding='same')(decoder)
+        decoder = layers.Activation(activation_layer)(decoder)
+        decoder = layers.Conv2D(num_filters, (convolution_size, convolution_size), padding='same')(
+            decoder)
         decoder = layers.BatchNormalization()(decoder)
-        decoder = layers.Activation('relu')(decoder)
-        decoder = layers.Conv2D(num_filters, (3, 3), padding='same')(decoder)
+        decoder = layers.Activation(activation_layer)(decoder)
+        decoder = layers.Conv2D(num_filters, (convolution_size, convolution_size), padding='same')(
+            decoder)
         decoder = layers.BatchNormalization()(decoder)
-        decoder = layers.Activation('relu')(decoder)
+        decoder = layers.Activation(activation_layer)(decoder)
         return decoder
 
     inputs = layers.Input(shape=img_shape)
-    # 256
-    encoder0_pool, encoder0 = encoder_block(inputs, 32)
-    # 128
-    encoder1_pool, encoder1 = encoder_block(encoder0_pool, 64)
-    # 64
-    encoder2_pool, encoder2 = encoder_block(encoder1_pool, 128)
-    # 32
-    encoder3_pool, encoder3 = encoder_block(encoder2_pool, 256)
-    # 16
-    encoder4_pool, encoder4 = encoder_block(encoder3_pool, 512, 5)
-    # 8
-    center = conv_block(encoder4_pool, 1024)
-    # center
-    decoder4 = decoder_block(center, encoder4, 512, 5)
-    # 16
-    decoder3 = decoder_block(decoder4, encoder3, 256)
-    # 32
-    decoder2 = decoder_block(decoder3, encoder2, 128)
-    # 64
-    decoder1 = decoder_block(decoder2, encoder1, 64)
-    # 128
-    decoder0 = decoder_block(decoder1, encoder0, 32)
-    # 256
-    outputs = layers.Conv2D(1, (1, 1), activation='sigmoid')(decoder0)
+
+    encoders = [None] * len(filters_nb_list)
+
+    actual_inputs = inputs
+    for i in range(0, len(filters_nb_list)):
+        a, b = encoder_block(actual_inputs, filters_nb_list[i], filters_scaling[i])
+        encoders[i] = b
+        actual_inputs = a
+
+    center = conv_block(actual_inputs, filters_nb_center)
+
+    actual_inputs = center
+    for i in reversed(range(0, len(filters_nb_list))):
+        print(encoders)
+        actual_inputs = decoder_block(actual_inputs,
+                                      encoders[i],
+                                      filters_nb_list[i],
+                                      filters_scaling[i])
+
+    outputs = layers.Conv2D(1, (1, 1), activation='sigmoid')(actual_inputs)
 
     model = models.Model(inputs=[inputs], outputs=[outputs])
     return model
@@ -125,15 +129,15 @@ def f1_score(y_true, y_pred):
     return f1_score
 
 
-def train_model(imgs, grnd, val_rate, batch_size, improve_function_list):
+def train_model(imgs, grnd, val_rate, batch_size, improve_functions_list, epochs, **kwargs):
     imgs_test, imgs_train, grnd_test, grnd_train = datatools.split(imgs, grnd, val_rate)
-    model = convolutional_model_building(imgs[0].shape)
+    model = convolutional_model_building(imgs[0].shape, **kwargs)
     model.compile(optimizer='adam', loss=bce_dice_loss, metrics=[dice_loss, f1_score, 'accuracy'])
     model.summary()
 
     train_dataset = datatools.get_baseline_dataset(imgs_train,
                                                    grnd_train,
-                                                   list_improve_func=improve_function_list)
+                                                   list_improve_func=improve_functions_list)
     val_dataset = tf.data.Dataset.from_tensor_slices((imgs_test, grnd_test))
     val_dataset = val_dataset.repeat().batch(batch_size)
     # checkpointer = ModelCheckpoint(filepath='weights2.hdf5', verbose=2, save_best_only=True)
@@ -146,8 +150,12 @@ def train_model(imgs, grnd, val_rate, batch_size, improve_function_list):
     return history, model
 
 
-def train_model_and_plot_results(batch_size, epochs, val_rate, improve_functions_list, imgs, grnd):
-    history, model = train_model(imgs, grnd, val_rate, batch_size, improve_functions_list)
+def train_model_and_plot_results(**kwargs):
+    imgs = kwargs["imgs"]
+    grnd = kwargs["grnd"]
+    epochs = kwargs["epochs"]
+
+    history, model = train_model(**kwargs)
 
     dice = history.history['dice_loss']
     val_dice = history.history['val_dice_loss']
@@ -182,14 +190,24 @@ def train_model_and_plot_results(batch_size, epochs, val_rate, improve_functions
     plotting.visualization_prediction(img, grnd, prediction[0])
 
 
-batch_size = 10
-epochs = 200
 imgs, grnd = datatools.load_training_images("data/training/", "images/", "groundtruth/", 100)
-val_rate = 0.2
-# List of function that you will apply on all your data to improve it.
-improve_function_list = [functools.partial(datatools.flip_img, True),
-                         functools.partial(datatools.flip_img, False),
-                         functools.partial(datatools.rotate_img, True),
-                         functools.partial(datatools.rotate_img, False)]
 
-train_model_and_plot_results(batch_size, epochs, val_rate, improve_function_list, imgs, grnd)
+config = {
+    "batch_size": 10,
+    "epochs": 200,
+    "val_rate": 0.2,
+    # List of function that you will apply on all your data to improve it.
+    "improve_functions_list": [functools.partial(datatools.flip_img, True),
+                               functools.partial(datatools.flip_img, False),
+                               functools.partial(datatools.rotate_img, True),
+                               functools.partial(datatools.rotate_img, False)],
+    "imgs": imgs,
+    "grnd": grnd,
+    "convolution_size": 3,
+    "activation_layer": 'relu',
+    "filters_nb_list": [32, 64, 128, 256, 512],
+    "filters_scaling": [2, 2, 2, 2, 5],
+    "filters_nb_center": 1024
+}
+
+train_model_and_plot_results(**config)
