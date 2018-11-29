@@ -1,96 +1,16 @@
-import os
+import functools
+from random import *
 
-import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+import tensorflow.keras.backend as K
 from tensorflow.python.keras import layers
 from tensorflow.python.keras import losses
 from tensorflow.python.keras import models
-import tensorflow.keras.backend as K
 
-# Helper functions
-
-def load_image(infilename):
-    data = mpimg.imread(infilename)
-    if len(data.shape) == 2:
-        data = data[:,:,np.newaxis]
-    result = tf.constant(data)
-    return result
-
-
-def img_float_to_uint8(img):
-    rimg = img - np.min(img)
-    rimg = (rimg / np.max(rimg) * 255).round().astype(np.uint8)
-    return rimg
-
-
-# Concatenate an image and its groundtruth
-def concatenate_images(img, gt_img):
-    nChannels = len(gt_img.shape)
-    w = gt_img.shape[0]
-    h = gt_img.shape[1]
-    if nChannels == 3:
-        cimg = np.concatenate((img, gt_img), axis=1)
-    else:
-        gt_img_3c = np.zeros((w, h, 3), dtype=np.uint8)
-        gt_img8 = img_float_to_uint8(gt_img)
-        gt_img_3c[:, :, 0] = gt_img8
-        gt_img_3c[:, :, 1] = gt_img8
-        gt_img_3c[:, :, 2] = gt_img8
-        img8 = img_float_to_uint8(img)
-        cimg = np.concatenate((img8, gt_img_3c), axis=1)
-    return cimg
-
-
-def img_crop(im, w, h):
-    list_patches = []
-    imgwidth = im.shape[0]
-    imgheight = im.shape[1]
-    is_2d = len(im.shape) < 3
-    for i in range(0, imgheight, h):
-        for j in range(0, imgwidth, w):
-            if is_2d:
-                im_patch = im[j:j + w, i:i + h]
-            else:
-                im_patch = im[j:j + w, i:i + h, :]
-            list_patches.append(im_patch)
-    return list_patches
-
-
-def load_training_images(root_dir, path_real_images, path_ground_truth, max_img):
-    """
-    This function allows you to load easily training data.
-    :param root_dir: Dir in which all data can be found
-    :param path_real_images: Subfolder of root_dir where real images can be found
-    :param path_ground_truth: Subfolder of root_dir where groundthruth images can be found
-    :param max_img: Maximum number of images you want to load.
-    :return: Returns the list of the images and their groundtruth in two separated matrix
-    """
-    image_dir = root_dir + path_real_images
-    files = os.listdir(image_dir)
-    n = min(max_img, len(files))  # Load maximum 20 images
-    print("Loading " + str(n) + " images")
-    imgs = [load_image(image_dir + files[i]) for i in range(n)]
-
-    gt_dir = root_dir + path_ground_truth
-    print("Loading " + str(n) + " images")
-    gt_imgs = [load_image(gt_dir + files[i]) for i in range(n)]
-
-    return imgs, gt_imgs
-
-
-def show_image_and_groundtruth(img, ground_truth):
-    """
-    Prints image next to it's groundtruth easily
-    :param img: A matrix that represents the image
-    :param ground_truth: A matrix taht represents the groundtruth
-    :return: Nothing
-    """
-    # TODO rewrite for tensorflow input
-    # cimg = concatenate_images(img, ground_truth)
-    # plt.figure(figsize=(10, 10))
-    # plt.imshow(cimg, cmap='Greys_r')
+import datatools
+import plotting
 
 
 def convolutional_model_building(img_shape):
@@ -185,7 +105,6 @@ def bce_dice_loss(y_true, y_pred):
 
 
 def f1_score(y_true, y_pred):
-
     # Count positive samples.
     c1 = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     c2 = K.sum(K.round(K.clip(y_pred, 0, 1)))
@@ -206,31 +125,29 @@ def f1_score(y_true, y_pred):
     return f1_score
 
 
-def main():
-    batch_size = 6
-    epochs = 200
-    imgs, grnd = load_training_images("data/training/", "images/", "groundtruth/", 100)
-    val_rate = 0.2
-    val_split_number = int(len(imgs) * val_rate)
-    imgs_test, imgs_train = imgs[:val_split_number], imgs[val_split_number:]
-    grnd_test, grnd_train = grnd[:val_split_number], grnd[val_split_number:]
-    print(len(imgs_train), len(imgs_test))
-    show_image_and_groundtruth(imgs[0], grnd[0])
-
-    print(imgs[0].shape)
+def train_model(imgs, grnd, val_rate, batch_size, improve_function_list):
+    imgs_test, imgs_train, grnd_test, grnd_train = datatools.split(imgs, grnd, val_rate)
     model = convolutional_model_building(imgs[0].shape)
-    model.compile(optimizer='adam', loss=bce_dice_loss, metrics=[dice_loss, f1_score])
+    model.compile(optimizer='adam', loss=bce_dice_loss, metrics=[dice_loss, f1_score, 'accuracy'])
     model.summary()
 
-    train_dataset = tf.data.Dataset.from_tensor_slices((imgs_train, grnd_train))
-    train_dataset = train_dataset.repeat().batch(batch_size)
+    train_dataset = datatools.get_baseline_dataset(imgs_train,
+                                                   grnd_train,
+                                                   list_improve_func=improve_function_list)
     val_dataset = tf.data.Dataset.from_tensor_slices((imgs_test, grnd_test))
     val_dataset = val_dataset.repeat().batch(batch_size)
+    # checkpointer = ModelCheckpoint(filepath='weights2.hdf5', verbose=2, save_best_only=True)
     history = model.fit(train_dataset,
                         steps_per_epoch=int(np.ceil(len(imgs_train) / float(batch_size))),
                         epochs=epochs,
                         validation_data=val_dataset,
                         validation_steps=int(np.ceil(len(imgs_test) / float(batch_size))))
+
+    return history, model
+
+
+def train_model_and_plot_results(batch_size, epochs, val_rate, improve_functions_list, imgs, grnd):
+    history, model = train_model(imgs, grnd, val_rate, batch_size, improve_functions_list)
 
     dice = history.history['dice_loss']
     val_dice = history.history['val_dice_loss']
@@ -255,6 +172,24 @@ def main():
 
     plt.show()
 
+    # pictures visualisation
 
-main()
-plt.show()
+    a = randint(0, len(imgs))
+    img = imgs[a]
+    grnd = grnd[a]
+    img_tensor = tf.convert_to_tensor([img], dtype=tf.float32)
+    prediction = model.predict(img_tensor, steps=1)
+    plotting.visualization_prediction(img, grnd, prediction[0])
+
+
+batch_size = 10
+epochs = 200
+imgs, grnd = datatools.load_training_images("data/training/", "images/", "groundtruth/", 100)
+val_rate = 0.2
+# List of function that you will apply on all your data to improve it.
+improve_function_list = [functools.partial(datatools.flip_img, True),
+                         functools.partial(datatools.flip_img, False),
+                         functools.partial(datatools.rotate_img, True),
+                         functools.partial(datatools.rotate_img, False)]
+
+train_model_and_plot_results(batch_size, epochs, val_rate, improve_function_list, imgs, grnd)
