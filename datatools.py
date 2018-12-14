@@ -3,6 +3,7 @@ import os
 import matplotlib.image as mpimg
 import numpy as np
 import tensorflow as tf
+from tensorflow.image import ResizeMethod
 
 
 def load_image(infilename):
@@ -13,9 +14,12 @@ def load_image(infilename):
     return result
 
 
-def load_training_images(root_dir, path_real_images, path_ground_truth, max_img):
+def load_training_images(root_dir, path_real_images, path_ground_truth, max_img, resize,
+                         preprocess=None):
     """
     This function allows you to load easily training data.
+    :param preprocess: Preprocess function to apply to all images. Useful for pretrained models
+    :param resize: New size of the image (images have to be square)
     :param root_dir: Dir in which all data can be found
     :param path_real_images: Subfolder of root_dir where real images can be found
     :param path_ground_truth: Subfolder of root_dir where groundthruth images can be found
@@ -26,12 +30,17 @@ def load_training_images(root_dir, path_real_images, path_ground_truth, max_img)
     files = os.listdir(image_dir)
     n = min(max_img, len(files))  # Load maximum 20 images
     print("Loading " + str(n) + " images")
-    imgs = [load_image(image_dir + files[i]) for i in range(n)]
+    if preprocess is not None:
+        imgs = [preprocess(load_image(image_dir + files[i])) for i in range(n)]
+    else:
+        imgs = [load_image(image_dir + files[i]) for i in range(n)]
 
     gt_dir = root_dir + path_ground_truth
     print("Loading " + str(n) + " ground truth")
     gt_imgs = [load_image(gt_dir + files[i]) for i in range(n)]
 
+    imgs = [resize_img(resize, img) for img in imgs]
+    gt_imgs = [resize_img(resize, gr) for gr in gt_imgs]
     return imgs, gt_imgs
 
 
@@ -106,3 +115,12 @@ def get_baseline_dataset(imgs,
             break
     dataset = dataset.repeat().batch(batch_size)
     return dataset
+
+
+def resize_img(to_size, img):
+    return tf.image.resize_images(
+        img,
+        (to_size, to_size),
+        method=ResizeMethod.NEAREST_NEIGHBOR,
+        align_corners=False
+    )
