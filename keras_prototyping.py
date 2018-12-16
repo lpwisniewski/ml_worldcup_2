@@ -11,6 +11,7 @@ from tensorflow.python.keras import models
 from tensorflow.python.keras import optimizers
 from tensorflow.keras.applications import VGG16, ResNet50
 from tensorflow.keras.applications import resnet50, vgg16
+from keras.preprocessing.image import ImageDataGenerator
 import os
 import datatools
 import plotting
@@ -249,7 +250,8 @@ def f1_score(y_true, y_pred):
     return f1_score
 
 
-def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type, nb_imgs=100,
+def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type, model_save_path,
+                nb_imgs=100,
                 resize_img=400,
                 tpu=False,
                 **kwargs):
@@ -266,6 +268,8 @@ def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type
                                                 nb_imgs,
                                                 resize_img, preprocess_input)
     imgs_test, imgs_train, grnd_test, grnd_train = datatools.split(imgs, grnd, val_rate)
+    imgs_train, grnd_train = datatools.get_baseline_dataset(imgs_train, grnd_train,
+                                                            improve_functions_list)
 
     if tpu:
         tf.keras.backend.clear_session()
@@ -294,19 +298,21 @@ def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type
     model.summary()
     print("Trainable: ", model.trainable)
 
-    train_dataset = datatools.get_baseline_dataset(imgs_train,
-                                                   grnd_train,
-                                                   list_improve_func=improve_functions_list)
+    checkpointer = tf.keras.callbacks.ModelCheckpoint(filepath=model_save_path,
+                                                      verbose=2,
+                                                      monitor="val_f1_score",
+                                                      save_best_only=True)
 
-    val_dataset = tf.data.Dataset.from_tensor_slices((imgs_test, grnd_test))
-    val_dataset = val_dataset.repeat().batch(batch_size)
+    datagen = ImageDataGenerator(rescale=1. / 255)
+    datagen.fit(imgs_train)
 
-    # checkpointer = ModelCheckpoint(filepath='weights2.hdf5', verbose=2, save_best_only=True)
-    history = model.fit(train_dataset,
-                        steps_per_epoch=int(np.ceil(len(imgs_train) / float(batch_size))),
-                        epochs=epochs,
-                        validation_data=val_dataset,
-                        validation_steps=int(np.ceil(len(imgs_test) / float(batch_size))))
+    history = model.fit_generator(datagen.flow(imgs_train, grnd_train, batch_size=batch_size),
+                                  steps_per_epoch=int(np.ceil(len(imgs_train) / float(batch_size))),
+                                  epochs=epochs,
+                                  validation_data=datagen.flow(imgs_test, grnd_test),
+                                  validation_steps=int(
+                                      np.ceil(len(imgs_train) / float(batch_size))),
+                                  callbacks=[checkpointer])
 
     return history, model
 
@@ -349,19 +355,40 @@ def train_model_and_plot_results(**kwargs):
     # plotting.visualization_prediction(img, grnd, prediction[0])
 
 
+def load_model(model_save_path):
+    return models.load_model(model_save_path, custom_objects={'bce_dice_loss': bce_dice_loss,
+                                                              'dice_loss': dice_loss,
+                                                              'f1_score': f1_score})
+
+
+def load_model_and_create_submission_file(model_save_path):
+    datagen = ImageDataGenerator(rescale=1. / 255)
+    model = load_model(model_save_path)
+    imgs = datatools.load_test_images('data/test_set_images/')
+    results = model.predict(datagen.flow(imgs))
+    print(results)
+
+
 def usage_example():
     config = {
         "batch_size": 8,
         "epochs": 200,
         "val_rate": 0.2,
         "nb_imgs": 100,
-        "resize_img": 384,
+        "resize_img": 400,
+        "model_save_path": "./model_weights.hdf5",
         # List of function that you will apply on all your data to improve it.
-        "improve_functions_list": [functools.partial(datatools.flip_img, True),
-                                   functools.partial(datatools.flip_img, False),
-                                   functools.partial(datatools.rotate_img, True),
-                                   functools.partial(datatools.rotate_img, False)],
-        "model_type": "ternaus",  # Model type: unet, ternaus, resnet
+        "improve_functions_list": [
+            functools.partial(datatools.flip_and_rotate, True, 0),
+            functools.partial(datatools.flip_and_rotate, False, 0),
+            functools.partial(datatools.flip_and_rotate, True, 90),
+            functools.partial(datatools.flip_and_rotate, False, 90),
+            functools.partial(datatools.flip_and_rotate, True, 180),
+            functools.partial(datatools.flip_and_rotate, False, 180),
+            functools.partial(datatools.flip_and_rotate, True, 270),
+            functools.partial(datatools.flip_and_rotate, False, 270)
+        ],
+        "model_type": "unet",  # Model type: unet, ternaus, resnet
 
         # UNET PARAMETERS ONLY
         "convolution_size": 3,
