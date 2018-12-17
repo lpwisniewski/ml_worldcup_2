@@ -4,6 +4,20 @@ import tensorflow as tf
 from PIL import Image
 
 
+def show_grnd(gt_img):
+    w = gt_img.shape[0]
+    h = gt_img.shape[1]
+    gt_img_3c = np.zeros((w, h, 3), dtype=np.uint8)
+    gt_img8 = img_float_to_uint8(gt_img)
+    gt_img_3c[:, :] = gt_img8
+    gt_img_3c[:, :] = gt_img8
+    gt_img_3c[:, :] = gt_img8
+
+    plt.figure(figsize=(10, 10))
+    plt.imshow(gt_img_3c, cmap='Greys_r')
+    plt.show()
+
+
 def concatenate_images(img, gt_img):
     nChannels = len(gt_img.shape)
     w = gt_img.shape[0]
@@ -72,3 +86,42 @@ def img_float_to_uint8(img):
 def visualization_prediction(img, grnd, prediction):
     visualize_results_overlay(img, prediction)
     visualize_results_concat(img, grnd, prediction)
+
+
+# Convert an array of binary labels to a uint8
+def binary_to_uint8(img):
+    rimg = (img * 255).round().astype(np.uint8)
+    return rimg
+
+
+def reconstruct_from_labels(image_id):
+    imgwidth = 608
+    imgheight = 608
+    im = np.zeros((imgwidth, imgheight), dtype=np.uint8)
+    f = open("./results.csv")
+    lines = f.readlines()
+    image_id_str = '%.3d_' % image_id
+    for i in range(1, len(lines)):
+        line = lines[i]
+        if not image_id_str in line:
+            continue
+
+        tokens = line.split(',')
+        id = tokens[0]
+        prediction = int(tokens[1])
+        tokens = id.split('_')
+        i = int(tokens[1])
+        j = int(tokens[2])
+
+        je = min(j + 16, imgwidth)
+        ie = min(i + 16, imgheight)
+        if prediction == 0:
+            adata = np.zeros((16, 16))
+        else:
+            adata = np.ones((16, 16))
+
+        im[j:je, i:ie] = binary_to_uint8(adata)
+
+    Image.fromarray(im).save('prediction_' + '%.3d' % image_id + '.png')
+
+    return im

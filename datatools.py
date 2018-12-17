@@ -17,6 +17,9 @@ def load_image(infilename):
 
 def load_test_images(path_to_validation):
     files = os.listdir(path_to_validation)
+    files = list(map(lambda t: t[1],
+                     sorted(list(zip([int(f.split("_")[1].split(".")[0]) for f in files], files)),
+                            key=lambda tup: tup[0])))
     n = len(files)
     print("Loading " + str(n) + " test images")
     imgs = [load_image(path_to_validation + files[i]) for i in range(n)]

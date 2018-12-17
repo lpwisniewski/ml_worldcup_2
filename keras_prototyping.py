@@ -247,7 +247,7 @@ def f1_score(y_true, y_pred):
     recall = c1 / c3
 
     # Calculate f1_score
-    f1_score = 2 * (precision * recall) / (precision + recall)
+    f1_score = - 2 * (precision * recall) / (precision + recall)
     return f1_score
 
 
@@ -314,13 +314,13 @@ def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type
                                       np.ceil(len(imgs_train) / float(batch_size))),
                                   callbacks=[checkpointer])
 
-    return history, model
+    return history, model, imgs, grnd
 
 
 def train_model_and_plot_results(**kwargs):
     epochs = kwargs["epochs"]
 
-    history, model = train_model(**kwargs)
+    history, model, imgs, grnd = train_model(**kwargs)
 
     dice = history.history['dice_loss']
     val_dice = history.history['val_dice_loss']
@@ -347,12 +347,12 @@ def train_model_and_plot_results(**kwargs):
 
     # pictures visualisation
 
-    # a = randint(0, len(imgs))
-    # img = imgs[a]
-    # grnd = grnd[a]
-    # img_tensor = tf.convert_to_tensor([img], dtype=tf.float32)
-    # prediction = model.predict(img_tensor, steps=1)
-    # plotting.visualization_prediction(img, grnd, prediction[0])
+    prediction = model.predict(imgs, steps=1)
+    plotting.show_grnd(prediction[0])
+
+    plt.figure(figsize=(10, 10))
+    plt.imshow(imgs[0], cmap='Greys_r')
+    plt.show()
 
 
 def load_model(model_save_path):
@@ -375,8 +375,9 @@ def create_csv(grnd_list, csv_path):
             for j in range(0, 38):
                 for k in range(0, 38):
                     img_number = i + 1
-                    label = np.round(np.mean(grnd[j * 16:j * 16 + 16, k * 16:k * 16 + 16]))
-                    "{:03d}_{}_{},{}".format(img_number, j * 16, k * 16, label)
+                    label = np.round(np.mean(grnd[k * 16:k * 16 + 16, j * 16:j * 16 + 16]))
+                    res = "{:03d}_{}_{},{}\n".format(img_number, j * 16, k * 16, int(label))
+                    f.write(res)
 
 
 def show_img(img):
