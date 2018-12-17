@@ -230,6 +230,7 @@ def bce_dice_loss(y_true, y_pred):
 
 
 def f1_score(y_true, y_pred):
+    print("Y_TRUE: ", y_true)
     # Count positive samples.
     c1 = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     c2 = K.sum(K.round(K.clip(y_pred, 0, 1)))
@@ -251,6 +252,7 @@ def f1_score(y_true, y_pred):
 
 
 def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type, model_save_path,
+                optimizer,
                 nb_imgs=100,
                 resize_img=400,
                 tpu=False,
@@ -292,9 +294,8 @@ def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type
             )
         )
 
-    optimize = optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
-                               amsgrad=False)
-    model.compile(optimizer=optimize, loss=bce_dice_loss, metrics=[dice_loss, f1_score, 'accuracy'])
+    model.compile(optimizer=optimizer, loss=bce_dice_loss,
+                  metrics=[dice_loss, f1_score, 'accuracy'])
     model.summary()
     print("Trainable: ", model.trainable)
 
@@ -303,8 +304,7 @@ def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type
                                                       monitor="val_f1_score",
                                                       save_best_only=True)
 
-    datagen = ImageDataGenerator(rescale=1. / 255)
-    datagen.fit(imgs_train)
+    datagen = ImageDataGenerator()
 
     history = model.fit_generator(datagen.flow(imgs_train, grnd_train, batch_size=batch_size),
                                   steps_per_epoch=int(np.ceil(len(imgs_train) / float(batch_size))),
@@ -361,12 +361,47 @@ def load_model(model_save_path):
                                                               'f1_score': f1_score})
 
 
-def load_model_and_create_submission_file(model_save_path):
-    datagen = ImageDataGenerator(rescale=1. / 255)
+def load_model_and_create_submission_file(model_save_path, csv_path):
     model = load_model(model_save_path)
     imgs = datatools.load_test_images('data/test_set_images/')
-    results = model.predict(datagen.flow(imgs))
-    print(results)
+    predict_imgs = [predict_test_img(img, model) for img in imgs]
+    create_csv(predict_imgs, csv_path)
+
+
+def create_csv(grnd_list, csv_path):
+    with open(csv_path, 'w') as f:
+        f.write('id,prediction\n')
+        for i, grnd in enumerate(grnd_list):
+            for j in range(0, 38):
+                for k in range(0, 38):
+                    img_number = i + 1
+                    label = np.round(np.mean(grnd[j * 16:j * 16 + 16, k * 16:k * 16 + 16]))
+                    "{:03d}_{}_{},{}".format(img_number, j * 16, k * 16, label)
+
+
+def show_img(img):
+    plt.figure(figsize=(10, 10))
+    plt.imshow(img, cmap='Greys_r')
+    plt.show()
+
+
+def predict_test_img(img, model):
+    a = img[:400, :400]
+    print("Shape: ", a.shape)
+    b = img[:400, 208:]
+    print("Shape: ", b.shape)
+    c = img[208:, 208:]
+    print("Shape: ", c.shape)
+    d = img[208:, :400]
+    print("Shape: ", d.shape)
+    pred = model.predict(np.array(([a, b, c, d])))
+    print("pred shape: ", pred.shape)
+    e = np.zeros((608, 608, 1))
+    e[:400, :400] = pred[0]
+    e[:400, 208:] = pred[1]
+    e[208:, 208:] = pred[2]
+    e[208:, :400] = pred[3]
+    return e
 
 
 def usage_example():
@@ -377,6 +412,9 @@ def usage_example():
         "nb_imgs": 100,
         "resize_img": 400,
         "model_save_path": "./model_weights.hdf5",
+        "optimizer": optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
+                                     amsgrad=False),
+
         # List of function that you will apply on all your data to improve it.
         "improve_functions_list": [
             functools.partial(datatools.flip_and_rotate, True, 0),

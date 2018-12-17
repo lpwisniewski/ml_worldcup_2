@@ -66,11 +66,8 @@ def split(imgs, grnd, validation_rate):
 
 def flip_img(horizontal_flip, img, gt_img):
     if horizontal_flip:
-        axis = 1
-    else:
-        axis = 0
-    tr_img, grd_img = np.flip(img, axis), np.flip(gt_img, axis)
-    return tr_img, grd_img
+        img, gt_img = np.fliplr(img), np.fliplr(gt_img)
+    return img, gt_img
 
 
 def rotate_img(angle, img, gt_img):
