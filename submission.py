@@ -24,15 +24,10 @@ def create_csv(grnd_list, csv_path):
 
 def predict_test_img(img, model):
     a = img[:400, :400]
-    print("Shape: ", a.shape)
     b = img[:400, 208:]
-    print("Shape: ", b.shape)
     c = img[208:, 208:]
-    print("Shape: ", c.shape)
     d = img[208:, :400]
-    print("Shape: ", d.shape)
     pred = model.predict(np.array(([a, b, c, d])))
-    print("pred shape: ", pred.shape)
     e = np.zeros((608, 608, 1))
     e[:400, :400] = pred[0]
     e[:400, 208:] = pred[1]
