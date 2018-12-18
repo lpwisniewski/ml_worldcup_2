@@ -11,7 +11,7 @@ Project 2 of Machine Learning course at EPFL
 * Loïc Wisniewski
 * Christophe Minutolo
 
-# <a name="Librairies"></a>Team Librairies
+# <a name="Librairies"></a>Librairies
 
 # <a name="Description-of-the-files"></a>Description of the files
 
