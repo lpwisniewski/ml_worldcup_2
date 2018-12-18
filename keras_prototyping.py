@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import optimizers
-from tensorflow.keras.applications import resnet50, vgg16
 from keras.preprocessing.image import ImageDataGenerator
 import os
 import datatools

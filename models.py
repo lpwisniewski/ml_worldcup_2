@@ -1,5 +1,8 @@
 import tensorflow as tf
+from tensorflow.keras.applications import VGG16, ResNet50
+from tensorflow.python.keras import layers
 from tensorflow.python.keras import models
+from tensorflow.keras.applications import resnet50, vgg16
 
 
 def ternaus_model_building(img_shape):
