@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from matplotlib import pyplot as plt
 
 
 def show_grnd(gt_img):
@@ -125,3 +126,9 @@ def reconstruct_from_labels(image_id):
     Image.fromarray(im).save('prediction_' + '%.3d' % image_id + '.png')
 
     return im
+
+
+def show_img(img):
+    plt.figure(figsize=(10, 10))
+    plt.imshow(img, cmap='Greys_r')
+    plt.show()
