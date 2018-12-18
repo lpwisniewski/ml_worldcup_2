@@ -66,6 +66,37 @@ def split(imgs, grnd, validation_rate):
     grnd_test, grnd_train = grnd[:val_split_number], grnd[val_split_number:]
     return imgs_test, imgs_train, grnd_test, grnd_train
 
+def concatenate_image(img, gt):
+  """Mirrors and concatenates images"""
+    img_fv = np.flipud(img)
+    gt_fv = np.flipud(gt)
+    img_fh, gt_fh = np.fliplr(img),np.fliplr(gt)
+    h = img.shape[0]
+    w = img.shape[1]
+    zer = np.zeros((h,w,3), dtype = float)
+    cimg = np.concatenate((img_fv, img, img_fv), axis=0)
+    cimg2 = np.concatenate((zer, img_fh, zer), axis=0)
+    cimg3 = np.concatenate((cimg2, cimg, cimg2), axis=1)
+    zer = np.zeros((h,w,1), dtype = float)
+    cgt = np.concatenate((gt_fv, gt, gt_fv), axis=0)
+    cgt2 = np.concatenate((zer, gt_fh, zer), axis=0)
+    cgt3 = np.concatenate((cgt2, cgt, cgt2), axis=1)
+    return cimg3, cgt3
+
+
+def crop(img, x0,y0,w, h):
+    return img[y0:y0+h, x0:x0+w,:]
+
+def rotate_data(angle,img, gt):
+    cimg, cgt = concatenate_image(img, gt)
+    r_img = transform.rotate(cimg, angle)
+    r_gt = transform.rotate(cgt, angle)
+    h = img.shape[0]
+    w = img.shape[1]
+    img = crop(r_img,h, w,h,w)
+    gt = crop(r_gt,h, w,h,w)
+    return img, gt  
+
 
 def flip_img(horizontal_flip, img, gt_img):
     if horizontal_flip:
@@ -79,7 +110,7 @@ def rotate_img(angle, img, gt_img):
 
 def flip_and_rotate(horizontal_flip, angle, img, gt_img):
     img, gt = flip_img(horizontal_flip, img, gt_img)
-    return rotate_img(angle, img, gt)
+    return rotate_data(angle, img, gt)
 
 
 def get_baseline_dataset(imgs,

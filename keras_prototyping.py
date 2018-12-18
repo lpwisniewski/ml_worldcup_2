@@ -419,13 +419,8 @@ def usage_example():
         # List of function that you will apply on all your data to improve it.
         "improve_functions_list": [
             functools.partial(datatools.flip_and_rotate, True, 0),
-            functools.partial(datatools.flip_and_rotate, False, 0),
-            functools.partial(datatools.flip_and_rotate, True, 90),
-            functools.partial(datatools.flip_and_rotate, False, 90),
-            functools.partial(datatools.flip_and_rotate, True, 180),
-            functools.partial(datatools.flip_and_rotate, False, 180),
-            functools.partial(datatools.flip_and_rotate, True, 270),
-            functools.partial(datatools.flip_and_rotate, False, 270)
+            functools.partial(datatools.flip_and_rotate, False, 45),
+            functools.partial(datatools.flip_and_rotate, True, 45)
         ],
         "model_type": "unet",  # Model type: unet, ternaus, resnet
 
