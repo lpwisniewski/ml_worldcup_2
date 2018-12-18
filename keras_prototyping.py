@@ -9,12 +9,14 @@ import os
 import datatools
 import plotting
 from losses import dice_loss, bce_dice_loss, f1_score
+from tensorflow.python.keras import losses
 from models import ternaus_model_building, resnet_model_building, convolutional_model_building
 from submission import load_model, create_csv, predict_test_img
 
 
 def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type, model_save_path,
                 optimizer,
+                loss_name="bce_dice",
                 nb_imgs=100,
                 resize_img=400,
                 tpu=False,
@@ -56,7 +58,15 @@ def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type
             )
         )
 
-    model.compile(optimizer=optimizer, loss=bce_dice_loss,
+    if loss_name == "bce_dice":
+        loss = bce_dice_loss
+    elif loss_name == "bce":
+        loss = losses.binary_crossentropy
+    elif loss_name == "dice":
+        loss = dice_loss
+
+    model.compile(optimizer=optimizer,
+                  loss=loss,
                   metrics=[dice_loss, f1_score, 'accuracy'])
     model.summary()
     print("Trainable: ", model.trainable)
@@ -124,27 +134,34 @@ def load_model_and_create_submission_file(model_save_path, csv_path):
     create_csv(predict_imgs, csv_path)
 
 
+
+
 def usage_example():
     config = {
-        "batch_size": 8,
-        "epochs": 200,
+        "batch_size": 2,
+        "epochs": 400,
         "val_rate": 0.2,
         "nb_imgs": 100,
         "resize_img": 400,
         "model_save_path": "./model_weights.hdf5",
-        "optimizer": optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
-                                     amsgrad=False),
-
+        #"optimizer": optimizers.Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0),
+        "optimizer": "adam",
+        "loss_name": "dice_loss",
         # List of function that you will apply on all your data to improve it.
         "improve_functions_list": [
-            functools.partial(datatools.flip_and_rotate, True, 0),
-            functools.partial(datatools.flip_and_rotate, False, 45),
-            functools.partial(datatools.flip_and_rotate, True, 45)
+            #functools.partial(datatools.flip_and_rotate, True, 0),
+            functools.partial(datatools.flip_and_rotate, False, 0),
+            #functools.partial(datatools.flip_and_rotate, True, 90),
+            #functools.partial(datatools.flip_and_rotate, False, 90),
+            #functools.partial(datatools.flip_and_rotate, True, 180),
+            #functools.partial(datatools.flip_and_rotate, False, 180),
+            #functools.partial(datatools.flip_and_rotate, True, 270),
+            #functools.partial(datatools.flip_and_rotate, False, 270)
         ],
         "model_type": "unet",  # Model type: unet, ternaus, resnet
 
         # UNET PARAMETERS ONLY
-        "convolution_size": 3,
+        "convolution_size": 5,
         "activation_layer": 'relu',
         "filters_nb_list": [32, 64, 128, 256, 512],
         "filters_scaling": [2, 2, 2, 2, 5],

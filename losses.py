@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow.python.keras import losses
 import tensorflow.keras.backend as K
 
+
 def dice_coeff(y_true, y_pred):
     smooth = 1.
     # Flatten
