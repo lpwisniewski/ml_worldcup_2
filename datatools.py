@@ -2,10 +2,12 @@ import os
 
 import matplotlib.image as mpimg
 import numpy as np
-import tensorflow as tf
-from PIL import Image
+import plotting
+import functools
+import matplotlib
 from skimage import transform
 from tensorflow.image import ResizeMethod
+from PIL import Image
 
 
 def load_image(infilename):
@@ -141,3 +143,52 @@ def get_baseline_dataset(imgs,
 
 def resize_img(to_size, img):
     return transform.resize(img, (to_size, to_size))
+
+
+def custom_image_generator(img_path, groundtruth_path, batch_size, random=True, preprocess=None):
+    imgs = np.array(os.listdir(img_path))
+    i = 0
+    while True:
+        if random:
+            batch_name = np.random.choice(a=imgs, size=batch_size)
+        else:
+            batch_name = imgs[i:i + batch_size]
+            i = (i + batch_size) % len(imgs)
+
+        if preprocess is not None:
+            imgs_batch = np.array([preprocess(load_image(img_path + name)) for name in batch_name])
+        else:
+            imgs_batch = np.array([load_image(img_path + name) for name in batch_name])
+
+        grnd_batch = np.array([load_image(groundtruth_path + name) for name in batch_name])
+
+        yield imgs_batch, grnd_batch
+
+
+def generate_files():
+    imgs = os.listdir("./data/training/train/groundtruth")
+    img_path = "data/training/train/images/"
+    grnd_path = "./data/training/train/groundtruth/"
+
+    tuples = [(name, load_image(img_path + name), load_image(grnd_path + name)) for name in imgs]
+
+    func_list = [
+        ("_flip", functools.partial(flip_and_rotate, True, 0)),
+        ("_flip_90", functools.partial(flip_and_rotate, True, 90)),
+        ("_flip_180", functools.partial(flip_and_rotate, True, 180)),
+        ("_flip_270", functools.partial(flip_and_rotate, True, 270)),
+        ("_90", functools.partial(flip_and_rotate, False, 90)),
+        ("_180", functools.partial(flip_and_rotate, False, 180)),
+        ("_270", functools.partial(flip_and_rotate, False, 270))
+    ]
+
+    for name, img, grnd in tuples:
+        for suff, func in func_list:
+            nimg, ngrnd = func(img, grnd)
+            tmp_name = name.split('.')[0] + suff + "." + name.split('.')[1]
+
+            im = Image.fromarray(plotting.grnd_to_img(ngrnd)[:, :, 1])
+            im.save(grnd_path + tmp_name)
+
+            im = Image.fromarray((nimg * 255).astype(np.uint8))
+            im.save(img_path + tmp_name)

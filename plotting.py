@@ -5,7 +5,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 
 
-def show_grnd(gt_img):
+def grnd_to_img(gt_img):
     w = gt_img.shape[0]
     h = gt_img.shape[1]
     gt_img_3c = np.zeros((w, h, 3), dtype=np.uint8)
@@ -13,9 +13,12 @@ def show_grnd(gt_img):
     gt_img_3c[:, :] = gt_img8
     gt_img_3c[:, :] = gt_img8
     gt_img_3c[:, :] = gt_img8
+    return gt_img_3c
 
+
+def show_grnd(gt_img):
     plt.figure(figsize=(10, 10))
-    plt.imshow(gt_img_3c, cmap='Greys_r')
+    plt.imshow(grnd_to_img(gt_img), cmap='Greys_r')
     plt.show()
 
 
@@ -78,7 +81,6 @@ def visualize_results_concat(img, gt_img, prediction):
 
 
 def img_float_to_uint8(img):
-    print(img.shape)
     rimg = img - np.min(img)
     rimg = (rimg / np.max(rimg) * 255).round().astype(np.uint8)
     return rimg

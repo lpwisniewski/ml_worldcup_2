@@ -1,6 +1,7 @@
 import functools
 
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import optimizers
@@ -12,9 +13,12 @@ from losses import dice_loss, bce_dice_loss, f1_score
 from tensorflow.python.keras import losses
 from models import ternaus_model_building, resnet_model_building, convolutional_model_building
 from submission import load_model, create_csv, predict_test_img
+import scipy.misc
+
+np.random.seed(1)
 
 
-def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type, model_save_path,
+def train_model(val_rate, batch_size, epochs, model_type, model_save_path,
                 optimizer,
                 loss_name="bce_dice",
                 nb_imgs=100,
@@ -30,24 +34,19 @@ def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type
     else:
         preprocess_input = None
 
-    imgs, grnd = datatools.load_training_images("data/training/", "images/", "groundtruth/",
-                                                nb_imgs,
-                                                resize_img, preprocess_input)
-    imgs_test, imgs_train, grnd_test, grnd_train = datatools.split(imgs, grnd, val_rate)
-    imgs_train, grnd_train = datatools.get_baseline_dataset(imgs_train, grnd_train,
-                                                            improve_functions_list)
+    img = datatools.load_image("./data/training/train/images/satImage_001.png")
 
     if tpu:
         tf.keras.backend.clear_session()
 
     if model_type == 'unet':
-        model = convolutional_model_building(imgs[0].shape, **kwargs)
+        model = convolutional_model_building(img.shape, **kwargs)
     elif model_type == 'ternaus':
-        model = ternaus_model_building(imgs[0].shape)
+        model = ternaus_model_building(img.shape)
     elif model_type == 'resnet':
-        model = resnet_model_building(imgs[0].shape)
+        model = resnet_model_building(img.shape)
     else:
-        model = ternaus_model_building(imgs[0].shape)
+        model = ternaus_model_building(img.shape)
 
     if tpu:
         model = tf.contrib.tpu.keras_to_tpu_model(
@@ -76,23 +75,31 @@ def train_model(val_rate, batch_size, improve_functions_list, epochs, model_type
                                                       monitor="val_f1_score",
                                                       save_best_only=True)
 
-    datagen = ImageDataGenerator()
+    datagen = datatools.custom_image_generator("./data/training/train/images/",
+                                               "./data/training/train/groundtruth/", batch_size,
+                                               preprocess=preprocess_input)
 
-    history = model.fit_generator(datagen.flow(imgs_train, grnd_train, batch_size=batch_size),
-                                  steps_per_epoch=int(np.ceil(len(imgs_train) / float(batch_size))),
+    data_gen_val = datatools.custom_image_generator("./data/training/validation/images/",
+                                                    "./data/training/validation/groundtruth/",
+                                                    random=False, batch_size=batch_size)
+
+    files = os.listdir("./data/training/train/images/")
+    files_test = os.listdir("./data/test_set_images/")
+    history = model.fit_generator(datagen,
+                                  steps_per_epoch=int(np.ceil(len(files) / float(batch_size))),
                                   epochs=epochs,
-                                  validation_data=datagen.flow(imgs_test, grnd_test),
+                                  validation_data=data_gen_val,
                                   validation_steps=int(
-                                      np.ceil(len(imgs_test) / float(batch_size))),
+                                      np.ceil(len(files_test) / float(batch_size))),
                                   callbacks=[checkpointer])
 
-    return history, model, imgs, grnd
+    return history, model
 
 
 def train_model_and_plot_results(**kwargs):
     epochs = kwargs["epochs"]
 
-    history, model, imgs, grnd = train_model(**kwargs)
+    history, model = train_model(**kwargs)
 
     dice = history.history['dice_loss']
     val_dice = history.history['val_dice_loss']
@@ -119,12 +126,12 @@ def train_model_and_plot_results(**kwargs):
 
     # pictures visualisation
 
-    prediction = model.predict(imgs, steps=1)
-    plotting.show_grnd(prediction[0])
+    #prediction = model.predict(imgs, steps=1)
+    #plotting.show_grnd(prediction[0])
 
-    plt.figure(figsize=(10, 10))
-    plt.imshow(imgs[0], cmap='Greys_r')
-    plt.show()
+    #plt.figure(figsize=(10, 10))
+    #plt.imshow(imgs[0], cmap='Greys_r')
+    #plt.show()
 
 
 def load_model_and_create_submission_file(model_save_path, csv_path):
@@ -132,8 +139,6 @@ def load_model_and_create_submission_file(model_save_path, csv_path):
     imgs = datatools.load_test_images('data/test_set_images/')
     predict_imgs = [predict_test_img(img, model) for img in imgs]
     create_csv(predict_imgs, csv_path)
-
-
 
 
 def usage_example():
@@ -144,20 +149,10 @@ def usage_example():
         "nb_imgs": 100,
         "resize_img": 400,
         "model_save_path": "./model_weights.hdf5",
-        #"optimizer": optimizers.Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0),
+        # "optimizer": optimizers.Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0),
         "optimizer": "adam",
         "loss_name": "dice_loss",
         # List of function that you will apply on all your data to improve it.
-        "improve_functions_list": [
-            #functools.partial(datatools.flip_and_rotate, True, 0),
-            functools.partial(datatools.flip_and_rotate, False, 0),
-            #functools.partial(datatools.flip_and_rotate, True, 90),
-            #functools.partial(datatools.flip_and_rotate, False, 90),
-            #functools.partial(datatools.flip_and_rotate, True, 180),
-            #functools.partial(datatools.flip_and_rotate, False, 180),
-            #functools.partial(datatools.flip_and_rotate, True, 270),
-            #functools.partial(datatools.flip_and_rotate, False, 270)
-        ],
         "model_type": "unet",  # Model type: unet, ternaus, resnet
 
         # UNET PARAMETERS ONLY
