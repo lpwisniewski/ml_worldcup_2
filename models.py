@@ -6,6 +6,7 @@ from tensorflow.keras.applications import resnet50, vgg16
 
 
 def ternaus_model_building(img_shape):
+    """Ternaus model declaration"""
     inputs = layers.Input(shape=img_shape)
     model = VGG16(weights="imagenet", include_top=False, input_tensor=inputs)
     layer_dict = dict([(layer.name, layer) for layer in model.layers])
@@ -44,6 +45,7 @@ def ternaus_model_building(img_shape):
 
 
 def resnet_model_building(img_shape):
+    """LinkNet model declaration"""
     inputs = layers.Input(shape=img_shape)
     model = ResNet50(weights="imagenet", include_top=False, input_tensor=inputs)
     layer_dict = dict([(layer.name, layer) for layer in model.layers])
@@ -122,11 +124,12 @@ def resnet_model_building(img_shape):
 
 
 def convolutional_model_building(img_shape,
-                                 convolution_size,  # TODO Can be parametrized for each layer
+                                 convolution_size,
                                  activation_layer,
                                  filters_nb_list,
                                  filters_scaling,
                                  filters_nb_center):
+    """UNet model declaration"""
     def conv_block(input_tensor, num_filters):
         encoder = layers.Conv2D(num_filters, (convolution_size, convolution_size), padding='same')(
             input_tensor)

@@ -18,13 +18,16 @@ import scipy.misc
 np.random.seed(1)
 
 
-def train_model(val_rate, batch_size, epochs, model_type, model_save_path,
+def train_model(batch_size, epochs, model_type, model_save_path,
                 optimizer,
                 loss_name="bce_dice",
-                nb_imgs=100,
                 resize_img=400,
                 tpu=False,
                 **kwargs):
+    """
+    Train the model and save it in model_save_path. Look at the end of this file for more information
+    about the parameters.
+    """
     if model_type == 'unet':
         preprocess_input = None
     elif model_type == 'ternaus':
@@ -97,6 +100,9 @@ def train_model(val_rate, batch_size, epochs, model_type, model_save_path,
 
 
 def train_model_and_plot_results(**kwargs):
+    """
+    Train the model according the given configuration (see the end of the file for example.
+    """
     epochs = kwargs["epochs"]
 
     history, model = train_model(**kwargs)
@@ -124,17 +130,11 @@ def train_model_and_plot_results(**kwargs):
 
     plt.show()
 
-    # pictures visualisation
-
-    #prediction = model.predict(imgs, steps=1)
-    #plotting.show_grnd(prediction[0])
-
-    #plt.figure(figsize=(10, 10))
-    #plt.imshow(imgs[0], cmap='Greys_r')
-    #plt.show()
-
 
 def load_model_and_create_submission_file(model_save_path, csv_path):
+    """
+    This function is used to create easily a submission CSV from a registered model.
+    """
     model = load_model(model_save_path)
     imgs = datatools.load_test_images('data/test_set_images/')
     predict_imgs = [predict_test_img(img, model) for img in imgs]
@@ -145,8 +145,6 @@ def usage_example():
     config = {
         "batch_size": 2,
         "epochs": 400,
-        "val_rate": 0.2,
-        "nb_imgs": 100,
         "resize_img": 400,
         "model_save_path": "./model_weights.hdf5",
         # "optimizer": optimizers.Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0),

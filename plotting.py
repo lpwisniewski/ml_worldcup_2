@@ -6,6 +6,9 @@ from matplotlib import pyplot as plt
 
 
 def grnd_to_img(gt_img):
+    """
+    Transforms groundtruth into image with RBG channels
+    """
     w = gt_img.shape[0]
     h = gt_img.shape[1]
     gt_img_3c = np.zeros((w, h, 3), dtype=np.uint8)
@@ -17,12 +20,18 @@ def grnd_to_img(gt_img):
 
 
 def show_grnd(gt_img):
+    """
+    Show groundtruth with matplotlib
+    """
     plt.figure(figsize=(10, 10))
     plt.imshow(grnd_to_img(gt_img), cmap='Greys_r')
     plt.show()
 
 
 def concatenate_images(img, gt_img):
+    """
+    Concatenate img and groudtruth to be able to print them side by side
+    """
     nChannels = len(gt_img.shape)
     w = gt_img.shape[0]
     h = gt_img.shape[1]
@@ -41,6 +50,9 @@ def concatenate_images(img, gt_img):
 
 
 def make_img_overlay(img, predicted_img):
+    """
+    Produce a combined image of image and groundtruth to see predictions
+    """
     w = img.shape[0]
     h = img.shape[1]
     color_mask = np.zeros((w, h, 3), dtype=np.uint8)
@@ -98,6 +110,10 @@ def binary_to_uint8(img):
 
 
 def reconstruct_from_labels(image_id):
+    """
+    Reconstruct labels from results.csv. Given a number return the groundtruth that is in the CSV.
+    Quality is lower than normal groundtruth as prediction are sampled to be saved in the CSV.
+    """
     imgwidth = 608
     imgheight = 608
     im = np.zeros((imgwidth, imgheight), dtype=np.uint8)

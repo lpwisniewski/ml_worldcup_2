@@ -45,6 +45,22 @@ load_model_and_create_submission_file("./model_weights.hdf5", "./results.csv")
 
 It will output predictions in `"your_path"/results.csv`.
 
+If you want to recreate the model from scratch, you will have to download the training files available
+on crowd.ai. Put images from 001 to 090 in the `"your_path"/data/training/train/images` and respective groundtruth in folder 
+`"your_path"/data/training/train/groundtruth`. 
+Put the rest in `"your_path"/data/training/validation/images` and `"your_path"/data/training/validation/groundtruth`.
+Then you will be able to proceed to data augmentation and run the model generation:
+
+```python
+from keras_prototyping import *
+import datatools
+datatools.generate_files()
+usage_example()
+load_model_and_create_submission_file("./model_weights.hdf5", "./results.csv")
+```
+
+It will output the weight in `"your_path"/model_weights.hdf5`
+
 # <a name="Libraries"></a>Libraries
 
 This project use the following libraries:
@@ -56,3 +72,10 @@ This project use the following libraries:
 - skimage
 
 # <a name="Structure"></a>Description of the files
+
+ - `keras_prototyping.py` contains all the main function to launch models easily.
+ - `plotting.py` contains plot functions, transformations from mask to images and from CSV to mask.
+ - `models.py` contains the UNet models and some try to implement transfer learning.
+ - `losses.py` contains all loss function (Dice, BCE + Loss) and monitor functions (Accuracy, F1 Score).
+ - `datatools.py` contains function to do data augmentation.
+ - `submission.py` contains functions to create CSV.

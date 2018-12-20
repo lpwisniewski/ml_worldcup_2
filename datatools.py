@@ -18,6 +18,9 @@ def load_image(infilename):
 
 
 def load_test_images(path_to_validation):
+    """
+    Load images to create CSV
+    """
     files = os.listdir(path_to_validation)
     files = list(map(lambda t: t[1],
                      sorted(list(zip([int(f.split("_")[1].split(".")[0]) for f in files], files)),
@@ -117,35 +120,15 @@ def flip_and_rotate(horizontal_flip, angle, img, gt_img):
     return rotate_data(angle, img, gt)
 
 
-def get_baseline_dataset(imgs,
-                         labels,
-                         list_improve_func=[]):
-    """
-    Get a full dataset with data improved.
-    :param imgs: images in tensor form
-    :param labels: groundtruth in the tensor form
-    :param list_improve_func: List of function you want to apply on your data to improve it
-    :param threads: Number of thread you want to create datasets and apply improve functions
-    :return: A repeated dataset, batched and improved with given function.
-    """
-
-    # Apply all improvement function to our dataset and store results
-    imgs_list = []
-    labels_list = []
-    for i in range(0, len(list_improve_func)):
-        for j in range(0, len(imgs)):
-            img, label = list_improve_func[i](imgs[j], labels[j])
-            imgs_list.append(img)
-            labels_list.append(label)
-
-    return np.array(imgs_list), np.array(labels_list)
-
-
 def resize_img(to_size, img):
     return transform.resize(img, (to_size, to_size))
 
 
 def custom_image_generator(img_path, groundtruth_path, batch_size, random=True, preprocess=None):
+    """
+    Generator that returns images from the img_path folder. Useful to avoid loading all picture
+    in memory.
+    """
     imgs = np.array(os.listdir(img_path))
     i = 0
     while True:
@@ -166,6 +149,9 @@ def custom_image_generator(img_path, groundtruth_path, batch_size, random=True, 
 
 
 def generate_files():
+    """
+    Function to reproduce data-augmentation we used for our last model.
+    """
     imgs = os.listdir("./data/training/train/groundtruth")
     img_path = "data/training/train/images/"
     grnd_path = "./data/training/train/groundtruth/"
@@ -179,7 +165,11 @@ def generate_files():
         ("_flip_270", functools.partial(flip_and_rotate, True, 270)),
         ("_90", functools.partial(flip_and_rotate, False, 90)),
         ("_180", functools.partial(flip_and_rotate, False, 180)),
-        ("_270", functools.partial(flip_and_rotate, False, 270))
+        ("_270", functools.partial(flip_and_rotate, False, 270)),
+        ("_flip_45", functools.partial(flip_and_rotate, True, 45)),
+        ("_flip_135", functools.partial(flip_and_rotate, True, 135)),
+        ("_45", functools.partial(flip_and_rotate, False, 45)),
+        ("_135", functools.partial(flip_and_rotate, False, 135))
     ]
 
     for name, img, grnd in tuples:
