@@ -4,6 +4,8 @@ This repository contains the code and report produced by our team
  for the project 2 of the Machine Learning course at EPFL in 2018.
 It uses a modified UNet to do a road segmentation.
 
+Our best result on crowd.ai is done with the username Mare, submission id: 25240
+
 ![Detailed image of the UNet architecture](./Unet.png "UNet Architecture")
 
 # Table of Contents
@@ -11,6 +13,7 @@ It uses a modified UNet to do a road segmentation.
 * [Team Members](#team-members)
 * [Environment](#Environment)
 * [Libraries](#Libraries)
+* [Technical problems](#technical)
 * [Structure](#Structure)
 
 # <a name="team-members"></a>Team Members
@@ -46,7 +49,8 @@ from keras_prototyping import *
 load_model_and_create_submission_file("./model_weights.hdf5", "./results.csv")
 ```
 
-Or if you want to run it on your computer, you can just launch `run.py`
+Or if you want to run it on your computer, you can just launch `run.py` in Google Colab
+with the command `!python run.py`
 
 It will output predictions in `"your_path"/results.csv`.
 
@@ -77,6 +81,14 @@ This project use the following libraries:
 - numpy
 - PIL
 - skimage
+
+# <a name="technical"></a>Technical problems
+On Google Cloud as memory is limited, we ofter had many OOM errors.
+To reduce memory consumption, we decided to do all the data-augmentation before
+starting the training, and save all augmentation in the training folder. Once done
+we were able to write a custom data generator that gives to Keras data incrementally
+to avoid to fill the memory that are not useful for now. You can check in the code
+in `datatools.py` the function `custom_image_generator`.
 
 # <a name="Structure"></a>Structure
 
