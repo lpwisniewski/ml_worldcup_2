@@ -37,7 +37,7 @@ drive.mount('/content/drive')
 Do not forget to set the accelerator on GPU in the runtime configuration of Google Colab.
 You will have to put in `"your_path"/data/test_set_images` all images from the test set (they should not
 have to be in sub-folders). You also have to put the saved weights in `"your_path"/model_weights.hdf5`.
-This weights are available [here](no_link_for_now).
+This weights are available [here](https://drive.google.com/open?id=1rrJpub78m2gfERY4d7VbkhCGIu6Y8EjT).
 
 Once done, you can run in Google Colab this code:
 
