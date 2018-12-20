@@ -4,9 +4,12 @@ This repository contains the code and report produced by our team
  for the project 2 of the Machine Learning course at EPFL in 2018.
 It uses a modified UNet to do a road segmentation.
 
+![Detailed image of the UNet architecture](./Unet.png "UNet Architecture")
+
 # Table of Contents
 
 * [Team Members](#team-members)
+* [Environment](#Environment)
 * [Libraries](#Libraries)
 * [Structure](#Structure)
 
@@ -15,7 +18,7 @@ It uses a modified UNet to do a road segmentation.
 * Loïc Wisniewski
 * Christophe Minutolo
 
-# <a name="Environnement"></a>Environnement
+# <a name="Environment"></a>Environment
 
 As training a deep learning model takes a long time and need powerful computers, we
 decided to use Google Colab to run our algorithms. We used the GPU runtime to accelerate the 
@@ -71,7 +74,7 @@ This project use the following libraries:
 - PIL
 - skimage
 
-# <a name="Structure"></a>Description of the files
+# <a name="Structure"></a>Structure
 
  - `keras_prototyping.py` contains all the main function to launch models easily.
  - `plotting.py` contains plot functions, transformations from mask to images and from CSV to mask.
