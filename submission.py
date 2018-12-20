@@ -10,7 +10,7 @@ def load_model(model_save_path):
                                                               'f1_score': f1_score})
 
 
-def create_csv(grnd_list, csv_path):
+def create_csv(grnd_list, csv_path, threshold):
     """
     Create csv from all the predicted groundtruth. It do the mean of each 16x16 patches then apply
     the threshold to now if this patches is mainly a road or not.
@@ -21,7 +21,7 @@ def create_csv(grnd_list, csv_path):
             for j in range(0, 38):
                 for k in range(0, 38):
                     img_number = i + 1
-                    label = np.mean(grnd[k * 16:k * 16 + 16, j * 16:j * 16 + 16]) > 0.25
+                    label = np.mean(grnd[k * 16:k * 16 + 16, j * 16:j * 16 + 16]) > threshold
                     res = "{:03d}_{}_{},{}\n".format(img_number, j * 16, k * 16, int(label))
                     f.write(res)
 

@@ -131,14 +131,14 @@ def train_model_and_plot_results(**kwargs):
     plt.show()
 
 
-def load_model_and_create_submission_file(model_save_path, csv_path):
+def load_model_and_create_submission_file(model_save_path, csv_path, threshold=0.25):
     """
     This function is used to create easily a submission CSV from a registered model.
     """
     model = load_model(model_save_path)
     imgs = datatools.load_test_images('data/test_set_images/')
     predict_imgs = [predict_test_img(img, model) for img in imgs]
-    create_csv(predict_imgs, csv_path)
+    create_csv(predict_imgs, csv_path, threshold)
 
 
 def usage_example():
