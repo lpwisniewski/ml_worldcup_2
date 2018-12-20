@@ -46,7 +46,11 @@ from keras_prototyping import *
 load_model_and_create_submission_file("./model_weights.hdf5", "./results.csv")
 ```
 
+Or if you want to run in on your computer, you can just launch `run.py`
+
 It will output predictions in `"your_path"/results.csv`.
+
+________________
 
 If you want to recreate the model from scratch, you will have to download the training files available
 on crowd.ai. Put images from 001 to 090 in the `"your_path"/data/training/train/images` and respective groundtruth in folder 
