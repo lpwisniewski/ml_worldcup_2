@@ -5,6 +5,9 @@ from losses import bce_dice_loss, dice_loss, f1_score
 
 
 def load_model(model_save_path):
+    """
+    Load model from the given path.
+    """
     return models.load_model(model_save_path, custom_objects={'bce_dice_loss': bce_dice_loss,
                                                               'dice_loss': dice_loss,
                                                               'f1_score': f1_score})

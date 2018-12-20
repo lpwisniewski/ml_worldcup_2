@@ -66,6 +66,9 @@ def make_img_overlay(img, predicted_img):
 
 
 def visualize_results_overlay(img, prediction):
+    """
+    Print an image with its groundtruth on overlay
+    """
     sess = tf.Session()
     with sess.as_default():
         im = img.eval()
@@ -79,6 +82,9 @@ def visualize_results_overlay(img, prediction):
 
 
 def visualize_results_concat(img, gt_img, prediction):
+    """
+    Print an image with its groundtruth concatenated
+    """
     sess = tf.Session()
     with sess.as_default():
         im = img.eval()
@@ -93,12 +99,19 @@ def visualize_results_concat(img, gt_img, prediction):
 
 
 def img_float_to_uint8(img):
+    """
+    Transforms a float numpy array that represent an image into a uint8 numpy array.
+    Useful to plot or save an image.
+    """
     rimg = img - np.min(img)
     rimg = (rimg / np.max(rimg) * 255).round().astype(np.uint8)
     return rimg
 
 
 def visualization_prediction(img, grnd, prediction):
+    """
+    Show both of the concatenated an overlayed visualisation
+    """
     visualize_results_overlay(img, prediction)
     visualize_results_concat(img, grnd, prediction)
 

@@ -16,8 +16,6 @@ def ternaus_model_building(img_shape):
         print(layer_dict[key].output_shape)
         layer_dict[key].trainble = False
 
-    num_filters = 32
-
     def decoder_block(input_tensor, concat_tensor, num_filters_a, num_filters_b, up_scale=2):
         decoder = layers.Conv2DTranspose(num_filters_a, (3, 3),
                                          strides=(up_scale, up_scale),
@@ -130,6 +128,7 @@ def convolutional_model_building(img_shape,
                                  filters_scaling,
                                  filters_nb_center):
     """UNet model declaration"""
+
     def conv_block(input_tensor, num_filters):
         encoder = layers.Conv2D(num_filters, (convolution_size, convolution_size), padding='same')(
             input_tensor)

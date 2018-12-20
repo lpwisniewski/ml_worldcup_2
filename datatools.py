@@ -91,10 +91,23 @@ def concatenate_image(img, gt):
 
 
 def crop(img, x0, y0, w, h):
+    """
+    Crop an image
+    :param img: Image to crop
+    :param x0: First pixel to take inside the crop on x axis
+    :param y0: First pixel to take inside the crop on y axis
+    :param w: Width of the crop
+    :param h: Height of the crop
+    :return:
+    """
     return img[y0:y0 + h, x0:x0 + w, :]
 
 
 def rotate_data(angle, img, gt):
+    """
+    Rotate an image. If there is some part of the image missing after rotation, it is filled by
+    mirroring the image.
+    """
     cimg, cgt = concatenate_image(img, gt)
     r_img = transform.rotate(cimg, angle)
     r_gt = transform.rotate(cgt, angle)
@@ -106,16 +119,18 @@ def rotate_data(angle, img, gt):
 
 
 def flip_img(horizontal_flip, img, gt_img):
+    """
+    Flip the image if horizontal_flip is true. Apply the same rotation to groundtruth.
+    """
     if horizontal_flip:
         img, gt_img = np.fliplr(img), np.fliplr(gt_img)
     return img, gt_img
 
 
-def rotate_img(angle, img, gt_img):
-    return transform.rotate(img, angle), transform.rotate(gt_img, angle)
-
-
 def flip_and_rotate(horizontal_flip, angle, img, gt_img):
+    """
+    Combine flip function and rotate in one function.
+    """
     img, gt = flip_img(horizontal_flip, img, gt_img)
     return rotate_data(angle, img, gt)
 

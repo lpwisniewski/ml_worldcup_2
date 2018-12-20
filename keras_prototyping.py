@@ -144,21 +144,20 @@ def load_model_and_create_submission_file(model_save_path, csv_path, threshold=0
 def usage_example():
     config = {
         "batch_size": 2,
-        "epochs": 400,
+        "epochs": 100,
         "resize_img": 400,
         "model_save_path": "./model_weights.hdf5",
-        # "optimizer": optimizers.Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0),
         "optimizer": "adam",
-        "loss_name": "dice_loss",
+
         # List of function that you will apply on all your data to improve it.
         "model_type": "unet",  # Model type: unet, ternaus, resnet
 
         # UNET PARAMETERS ONLY
         "convolution_size": 5,
         "activation_layer": 'relu',
-        "filters_nb_list": [32, 64, 128, 256, 512],
+        "filters_nb_list": [16, 32, 64, 128, 256],
         "filters_scaling": [2, 2, 2, 2, 5],
-        "filters_nb_center": 1024
+        "filters_nb_center": 512
     }
 
     train_model_and_plot_results(**config)
