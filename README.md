@@ -20,7 +20,7 @@ It uses a modified UNet to do a road segmentation.
 
 # <a name="Environment"></a>Environment
 
-As training a deep learning model takes a long time and need powerful computers, we
+As training a deep learning model takes a long time and needs powerful computers, we
 decided to use Google Colab to run our algorithms. We used the GPU runtime to accelerate the 
 learning process. Moreover all useful libraries for deep learning are already available on Google Colab.
 
@@ -46,7 +46,7 @@ from keras_prototyping import *
 load_model_and_create_submission_file("./model_weights.hdf5", "./results.csv")
 ```
 
-Or if you want to run in on your computer, you can just launch `run.py`
+Or if you want to run it on your computer, you can just launch `run.py`
 
 It will output predictions in `"your_path"/results.csv`.
 
